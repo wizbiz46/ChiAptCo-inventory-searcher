@@ -278,7 +278,7 @@ function clearFilters(){ ['searchInput','minPriceFilter','maxPriceFilter','moveD
 function exportCsv(){
   const cols = ['building_name','unit_number','neighborhood','beds','baths','sqft','price','available_date','floorplan_name','address','url'];
   const csv = [cols.join(','), ...filtered.map(u=>cols.map(c=>`"${String(u[c] ?? '').replace(/"/g,'""')}"`).join(','))].join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = `myapt-inventory-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = `chicago-apartment-co-inventory-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
 }
 function exportFlagsCsv(){
   const flags = Object.values(loadFlags());
@@ -288,7 +288,7 @@ function exportFlagsCsv(){
     return { scope:f.scope, building_name:unit?.building_name || f.id, unit_number:f.scope==='unit' ? (unit?.unit_number || '') : '', neighborhood:unit?.neighborhood || '', price:unit?.price || '', flag_reason:f.reason || '', updated_at:f.updated_at || f.created_at || '' };
   });
   const csv = [cols.join(','), ...rows.map(r=>cols.map(c=>`"${String(r[c] ?? '').replace(/"/g,'""')}"`).join(','))].join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = `myapt-flagged-inventory-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = `chicago-apartment-co-flagged-inventory-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
 }
 function openDrawer(id){ $(id).classList.add('open'); $(id).setAttribute('aria-hidden','false'); }
 function closeDrawer(id){ $(id).classList.remove('open'); $(id).setAttribute('aria-hidden','true'); }

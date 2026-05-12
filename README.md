@@ -1,6 +1,6 @@
-# myAPT Inventory Searcher
+# Chicago Apartment Co. Inventory Searcher
 
-Mobile-friendly static web app inspired by the myAPT Field Ops / Media + Partner Tracker UI.
+Mobile-friendly static web app inspired by the Chicago Apartment Co. Field Ops / Media + Partner Tracker UI.
 
 ## Filters
 

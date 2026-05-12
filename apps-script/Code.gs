@@ -1,5 +1,5 @@
 /**
- * myAPT Inventory Searcher — read-only Google Apps Script endpoint.
+ * Chicago Apartment Co. Inventory Searcher — read-only Google Apps Script endpoint.
  * Deploy as Web App: Execute as Me, access Anyone with link.
  * Source: Inventory LIVE / units sheet.
  */
