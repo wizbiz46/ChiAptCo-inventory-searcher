@@ -109,14 +109,58 @@ function renderStats(){
   ].map(([l,v])=>`<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
 }
 function unitCard(u){
-  const meta = [u.neighborhood, u.floorplan_name, u.sqft ? `${u.sqft} sqft` : '', u.unit_number ? `Unit ${u.unit_number}` : ''].filter(Boolean).join(' · ');
-  return `<article class="card" data-unit="${esc(u.id)}"><div><div class="card-title">${esc(u.building_name)}</div><div class="card-sub">${esc(meta)}</div><div class="badges">${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'gold')}${badge(formatDate(u.available_date),'green')}</div></div><div class="price-pill">${esc(money(u.price))}</div></article>`;
+  const meta = [u.floorplan_name, u.sqft ? `${u.sqft} sqft` : '', u.unit_number ? `Unit ${u.unit_number}` : ''].filter(Boolean).join(' · ');
+  return `<article class="card unit-card" data-unit="${esc(u.id)}"><div><div class="card-title">${u.unit_number ? `Unit ${esc(u.unit_number)}` : esc(u.building_name)}</div><div class="card-sub">${esc(meta)}</div><div class="badges">${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'gold')}${badge(formatDate(u.available_date),'green')}</div></div><div class="price-pill">${esc(money(u.price))}</div></article>`;
+}
+function buildingKey(u){ return u.building_key || u.building_name || 'Unknown property'; }
+function minPrice(units){ const prices = units.map(u=>num(u.price)).filter(Boolean); return prices.length ? Math.min(...prices) : 0; }
+function groupResultsHtml(){
+  if(!filtered.length) return '<div class="empty">No units match those filters.</div>';
+  const selectedHoods = selectedChips('neighborhoodFilter');
+  const hoodOrder = new Map(selectedHoods.map((h,i)=>[h,i]));
+  const hoodMap = new Map();
+  filtered.forEach(u=>{
+    const hood = u.neighborhood || 'No master neighborhood';
+    if(!hoodMap.has(hood)) hoodMap.set(hood, []);
+    hoodMap.get(hood).push(u);
+  });
+  const neighborhoods = [...hoodMap.entries()].sort(([a],[b])=>{
+    const ai = hoodOrder.has(a) ? hoodOrder.get(a) : 9999;
+    const bi = hoodOrder.has(b) ? hoodOrder.get(b) : 9999;
+    if(ai !== bi) return ai - bi;
+    if(a === 'No master neighborhood') return 1;
+    if(b === 'No master neighborhood') return -1;
+    return a.localeCompare(b);
+  });
+  let buildingIndex = 0;
+  return neighborhoods.map(([hood, units])=>{
+    const buildingMap = new Map();
+    units.forEach(u=>{
+      const key = buildingKey(u);
+      if(!buildingMap.has(key)) buildingMap.set(key, []);
+      buildingMap.get(key).push(u);
+    });
+    const buildings = [...buildingMap.entries()].sort(([,aUnits],[,bUnits])=>{
+      const an = aUnits[0]?.building_name || '';
+      const bn = bUnits[0]?.building_name || '';
+      return an.localeCompare(bn);
+    });
+    const unitCount = units.length;
+    return `<section class="neighborhood-group"><div class="neighborhood-head"><div><div class="eyebrow">Neighborhood</div><h3>${esc(hood)}</h3></div><span>${buildings.length} building${buildings.length===1?'':'s'} · ${unitCount} unit${unitCount===1?'':'s'}</span></div><div class="building-list">${buildings.map(([key, bUnits])=>{
+      buildingIndex++;
+      const first = bUnits[0] || {};
+      const open = buildingIndex <= 8 ? ' open' : '';
+      const beds = [...new Set(bUnits.map(u=>bedLabel(u.beds)))].join(' · ');
+      return `<details class="building-group"${open}><summary><div><div class="card-title">${esc(first.building_name || key)}</div><div class="card-sub">${esc(beds)} · ${bUnits.length} available unit${bUnits.length===1?'':'s'}</div></div><div class="price-pill">From ${esc(money(minPrice(bUnits)))}</div></summary><div class="building-units">${bUnits.map(unitCard).join('')}</div></details>`;
+    }).join('')}</div></section>`;
+  }).join('');
 }
 function render(){
   renderStats();
-  $('resultsTitle').textContent = `${filtered.length.toLocaleString()} available unit${filtered.length===1?'':'s'}`;
-  $('resultsSub').textContent = state.source === 'live' ? `Synced ${state.updated_at ? new Date(state.updated_at).toLocaleString() : 'recently'} from Inventory LIVE.` : 'Sample data shown. Add the Apps Script endpoint in Settings to pull Inventory LIVE.';
-  $('inventoryList').innerHTML = filtered.length ? filtered.map(unitCard).join('') : '<div class="empty">No units match those filters.</div>';
+  const buildingCount = new Set(filtered.map(buildingKey)).size;
+  $('resultsTitle').textContent = `${filtered.length.toLocaleString()} unit${filtered.length===1?'':'s'} in ${buildingCount.toLocaleString()} building${buildingCount===1?'':'s'}`;
+  $('resultsSub').textContent = state.source === 'live' ? `Grouped by master neighborhood, then building. Synced ${state.updated_at ? new Date(state.updated_at).toLocaleString() : 'recently'} from Inventory LIVE.` : 'Sample data shown. Add the Apps Script endpoint in Settings to pull Inventory LIVE.';
+  $('inventoryList').innerHTML = groupResultsHtml();
   document.querySelectorAll('[data-unit]').forEach(el=>el.onclick=()=>openUnit(el.dataset.unit));
 }
 function openUnit(id){
