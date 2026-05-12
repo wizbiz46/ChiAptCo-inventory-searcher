@@ -45,28 +45,39 @@ function bedLabel(v){ const n = Number(v); return n === 0 ? 'Studio' : n ? `${n}
 function bathLabel(v){ const n = Number(v); return n ? `${Number.isInteger(n) ? n : n.toFixed(1)} bath` : 'Baths TBD'; }
 function badge(label, cls=''){ return `<span class="badge ${cls}">${esc(label)}</span>`; }
 
+function selectedChips(id){
+  return [...document.querySelectorAll(`#${id} .multi-chip.active`)].map(btn=>btn.dataset.value);
+}
+function chipLabel(type, v){
+  if(type==='beds') return Number(v) === 0 ? 'Studio' : `${v} bed`;
+  return v;
+}
+function buildMultiChips(id, values, type){
+  $(id).innerHTML = values.map(v=>`<button type="button" class="multi-chip" data-value="${esc(v)}">${esc(chipLabel(type, v))}</button>`).join('');
+  document.querySelectorAll(`#${id} .multi-chip`).forEach(btn=>btn.onclick=()=>{ btn.classList.toggle('active'); applyFilters(); });
+}
 function populateFilters(){
   const units = state.units || [];
   const beds = [...new Set(units.map(u=>String(u.beds)).filter(v=>v!==''))].sort((a,b)=>Number(a)-Number(b));
   const baths = [...new Set(units.map(u=>String(u.baths)).filter(v=>v!==''))].sort((a,b)=>Number(a)-Number(b));
   const hood = [...new Set(units.map(u=>u.neighborhood).filter(Boolean))].sort();
-  $('bedsFilter').innerHTML = '<option value="any">Any beds</option>' + beds.map(v=>`<option value="${esc(v)}">${esc(Number(v)===0?'Studio':`${v} bed`)}</option>`).join('');
+  buildMultiChips('bedsFilter', beds, 'beds');
   $('bathsFilter').innerHTML = '<option value="any">Any baths</option>' + baths.map(v=>`<option value="${esc(v)}">${esc(v)} bath</option>`).join('');
-  $('neighborhoodFilter').innerHTML = '<option value="any">Any neighborhood</option>' + hood.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  buildMultiChips('neighborhoodFilter', hood, 'neighborhood');
 }
 
 function applyFilters(){
   const q = $('searchInput').value.trim().toLowerCase();
-  const beds = $('bedsFilter').value;
+  const beds = selectedChips('bedsFilter');
   const baths = $('bathsFilter').value;
-  const hood = $('neighborhoodFilter').value;
+  const hood = selectedChips('neighborhoodFilter');
   const min = num($('minPriceFilter').value);
   const max = num($('maxPriceFilter').value);
   const moveBy = $('moveDateFilter').value ? new Date($('moveDateFilter').value + 'T23:59:59') : null;
   filtered = (state.units || []).filter(u => {
-    if(beds !== 'any' && String(u.beds) !== beds) return false;
+    if(beds.length && !beds.includes(String(u.beds))) return false;
     if(baths !== 'any' && String(u.baths) !== baths) return false;
-    if(hood !== 'any' && u.neighborhood !== hood) return false;
+    if(hood.length && !hood.includes(u.neighborhood)) return false;
     const price = num(u.price);
     if(min && (!price || price < min)) return false;
     if(max && (!price || price > max)) return false;
@@ -128,7 +139,7 @@ async function sync(){
   }catch(err){ toast('Sync failed: ' + err.message); }
   finally{ $('syncBtn').disabled = false; $('syncBtn').textContent = 'Refresh'; }
 }
-function clearFilters(){ ['searchInput','minPriceFilter','maxPriceFilter','moveDateFilter'].forEach(id=>$(id).value=''); ['bedsFilter','bathsFilter','neighborhoodFilter'].forEach(id=>$(id).value='any'); applyFilters(); }
+function clearFilters(){ ['searchInput','minPriceFilter','maxPriceFilter','moveDateFilter'].forEach(id=>$(id).value=''); $('bathsFilter').value='any'; document.querySelectorAll('.multi-chip.active').forEach(btn=>btn.classList.remove('active')); applyFilters(); }
 function exportCsv(){
   const cols = ['building_name','unit_number','neighborhood','beds','baths','sqft','price','available_date','floorplan_name','address','url'];
   const csv = [cols.join(','), ...filtered.map(u=>cols.map(c=>`"${String(u[c] ?? '').replace(/"/g,'""')}"`).join(','))].join('\n');
@@ -137,7 +148,7 @@ function exportCsv(){
 function openDrawer(id){ $(id).classList.add('open'); $(id).setAttribute('aria-hidden','false'); }
 function closeDrawer(id){ $(id).classList.remove('open'); $(id).setAttribute('aria-hidden','true'); }
 function bind(){
-  ['searchInput','bedsFilter','bathsFilter','neighborhoodFilter','minPriceFilter','maxPriceFilter','moveDateFilter','sortSelect'].forEach(id=>$(id).addEventListener('input', applyFilters));
+  ['searchInput','bathsFilter','minPriceFilter','maxPriceFilter','moveDateFilter','sortSelect'].forEach(id=>$(id).addEventListener('input', applyFilters));
   $('syncBtn').onclick = sync; $('clearFiltersBtn').onclick = clearFilters; $('exportCsvBtn').onclick = exportCsv;
   $('settingsBtn').onclick = ()=>{ $('endpointInput').value = localStorage.getItem(ENDPOINT_KEY) || DEFAULT_ENDPOINT; openDrawer('settingsDrawer'); };
   $('saveEndpointBtn').onclick = ()=>{ localStorage.setItem(ENDPOINT_KEY, $('endpointInput').value.trim()); closeDrawer('settingsDrawer'); toast('Endpoint saved'); };

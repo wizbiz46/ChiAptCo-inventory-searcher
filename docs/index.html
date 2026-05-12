@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="myAPT Inventory" />
   <title>myAPT Inventory Searcher</title>
-  <link rel="stylesheet" href="styles.css?v=live-inventory-e9dec8d" />
+  <link rel="stylesheet" href="styles.css?v=multi-select-beds-neighborhoods" />
 </head>
 <body>
   <div class="app" id="app">
@@ -44,9 +44,9 @@
           </div>
 
           <div class="filter-grid">
-            <label>Bed count<select id="bedsFilter"><option value="any">Any beds</option></select></label>
+            <label class="wide-filter">Bed count<div id="bedsFilter" class="multi-chip-row" aria-label="Bed count filters"></div></label>
             <label>Bath count<select id="bathsFilter"><option value="any">Any baths</option></select></label>
-            <label>Neighborhood<select id="neighborhoodFilter"><option value="any">Any neighborhood</option></select></label>
+            <label class="wide-filter">Neighborhood<div id="neighborhoodFilter" class="multi-chip-row" aria-label="Neighborhood filters"></div></label>
             <label>Move date<input id="moveDateFilter" type="date" /></label>
             <label>Min price<input id="minPriceFilter" type="number" inputmode="numeric" placeholder="$ min" /></label>
             <label>Max price<input id="maxPriceFilter" type="number" inputmode="numeric" placeholder="$ max" /></label>
@@ -92,7 +92,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
-  <script src="seed-data.js?v=live-inventory-e9dec8d"></script>
-  <script src="app.js?v=live-inventory-e9dec8d"></script>
+  <script src="seed-data.js?v=multi-select-beds-neighborhoods"></script>
+  <script src="app.js?v=multi-select-beds-neighborhoods"></script>
 </body>
 </html>
