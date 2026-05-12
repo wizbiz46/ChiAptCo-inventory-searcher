@@ -1,9 +1,11 @@
 const STORE_KEY = 'myapt_inventory_searcher_v1';
 const ENDPOINT_KEY = 'myapt_inventory_endpoint_v1';
+const FLAGS_KEY = 'myapt_inventory_flags_v1';
 const DEFAULT_ENDPOINT = 'https://ncsniper.app.n8n.cloud/webhook/myapt-inventory-live';
 
 let state = loadState();
 let filtered = [];
+let ui = { tab: 'search' };
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -39,6 +41,12 @@ function loadState(){
   return { units: (window.MYAPT_INVENTORY_SEED || []).map(normalizeUnit), updated_at: null, source: 'sample' };
 }
 function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+function loadFlags(){ try { return JSON.parse(localStorage.getItem(FLAGS_KEY) || '{}'); } catch(e){ return {}; } }
+function saveFlags(flags){ localStorage.setItem(FLAGS_KEY, JSON.stringify(flags)); }
+function flagKey(scope, id){ return `${scope}:${id}`; }
+function buildingFlagId(u){ return buildingKey(u); }
+function getFlag(scope, id){ return loadFlags()[flagKey(scope, id)]; }
+function flagCount(){ return Object.keys(loadFlags()).length; }
 function dateValue(s){ const d = new Date(s); return Number.isNaN(d.getTime()) ? null : d; }
 function formatDate(s){ const d = dateValue(s); return d ? d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : 'Move date TBD'; }
 function bedLabel(v){ const n = Number(v); return n === 0 ? 'Studio' : n ? `${n} bed` : 'Beds TBD'; }
@@ -108,9 +116,70 @@ function renderStats(){
     ['Soonest', soonest ? soonest.toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '—'],
   ].map(([l,v])=>`<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
 }
+function setTab(tab){
+  ui.tab = tab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  $(`${tab}Panel`).classList.add('active');
+  render();
+}
+function flagLabel(scope){ return scope === 'building' ? 'Building flag' : 'Unit flag'; }
+function openFlag(scope, id){
+  const flags = loadFlags();
+  const existing = flags[flagKey(scope, id)];
+  $('flagTargetType').value = scope;
+  $('flagTargetId').value = id;
+  $('flagScope').innerHTML = scope === 'unit' ? '<option value="building">Flag building</option><option value="unit">Flag unit</option>' : '<option value="building">Flag building</option>';
+  $('flagScope').value = scope;
+  $('flagReason').value = existing?.reason || '';
+  $('removeFlagBtn').style.display = existing ? 'inline-flex' : 'none';
+  const context = scope === 'unit' ? unitTitle(findUnit(id)) : buildingTitle(id);
+  $('flagFormTitle').textContent = existing ? `Edit flag — ${context}` : `Flag ${context}`;
+  openDrawer('flagDrawer');
+}
+function saveFlag(e){
+  e.preventDefault();
+  const scope = $('flagScope').value;
+  const originalScope = $('flagTargetType').value;
+  const originalId = $('flagTargetId').value;
+  const unit = originalScope === 'unit' ? findUnit(originalId) : null;
+  const id = scope === 'building' ? (unit ? buildingFlagId(unit) : originalId) : (unit ? unit.id : originalId);
+  const reason = $('flagReason').value.trim();
+  if(!reason){ toast('Add a Flag Reason first'); return; }
+  const flags = loadFlags();
+  delete flags[flagKey(originalScope, originalId)];
+  flags[flagKey(scope, id)] = { scope, id, reason, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+  saveFlags(flags);
+  closeDrawer('flagDrawer');
+  toast(scope === 'building' ? 'Building flagged' : 'Unit flagged');
+  render();
+}
+function removeCurrentFlag(){
+  const scope = $('flagTargetType').value;
+  const id = $('flagTargetId').value;
+  const flags = loadFlags();
+  delete flags[flagKey(scope, id)];
+  saveFlags(flags);
+  closeDrawer('flagDrawer');
+  toast('Flag removed');
+  render();
+}
+function findUnit(id){ return (state.units || []).find(u=>String(u.id)===String(id)); }
+function unitTitle(u){ return u ? `${u.building_name}${u.unit_number ? ` #${u.unit_number}` : ''}` : 'unit'; }
+function buildingTitle(id){ const u=(state.units||[]).find(x=>buildingKey(x)===id); return u?.building_name || id || 'building'; }
+function isFlagged(scope, id){ return !!getFlag(scope, id); }
+function flagButton(scope, id){
+  const active = isFlagged(scope, id);
+  return `<button type="button" class="small-btn flag-btn ${active?'active':''}" data-flag-${scope}="${esc(id)}">${active?'🚩 Flagged':'🚩 Flag'}</button>`;
+}
+function wireFlagButtons(){
+  document.querySelectorAll('[data-flag-unit]').forEach(btn=>btn.onclick=e=>{ e.stopPropagation(); openFlag('unit', btn.dataset.flagUnit); });
+  document.querySelectorAll('[data-flag-building]').forEach(btn=>btn.onclick=e=>{ e.stopPropagation(); openFlag('building', btn.dataset.flagBuilding); });
+}
 function unitCard(u){
   const meta = [u.floorplan_name, u.sqft ? `${u.sqft} sqft` : '', u.unit_number ? `Unit ${u.unit_number}` : ''].filter(Boolean).join(' · ');
-  return `<article class="card unit-card" data-unit="${esc(u.id)}"><div><div class="card-title">${u.unit_number ? `Unit ${esc(u.unit_number)}` : esc(u.building_name)}</div><div class="card-sub">${esc(meta)}</div><div class="badges">${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'gold')}${badge(formatDate(u.available_date),'green')}</div></div><div class="price-pill">${esc(money(u.price))}</div></article>`;
+  const flagged = isFlagged('unit', u.id) || isFlagged('building', buildingFlagId(u));
+  return `<article class="card unit-card ${flagged?'flagged':''}" data-unit="${esc(u.id)}"><div><div class="card-title">${u.unit_number ? `Unit ${esc(u.unit_number)}` : esc(u.building_name)}</div><div class="card-sub">${esc(meta)}</div><div class="badges">${flagged?badge('Flagged','red'):''}${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'gold')}${badge(formatDate(u.available_date),'green')}</div></div><div class="unit-actions"><div class="price-pill">${esc(money(u.price))}</div>${flagButton('unit', u.id)}</div></article>`;
 }
 function buildingKey(u){ return u.building_key || u.building_name || 'Unknown property'; }
 function minPrice(units){ const prices = units.map(u=>num(u.price)).filter(Boolean); return prices.length ? Math.min(...prices) : 0; }
@@ -151,23 +220,45 @@ function groupResultsHtml(){
       const first = bUnits[0] || {};
       const open = buildingIndex <= 8 ? ' open' : '';
       const beds = [...new Set(bUnits.map(u=>bedLabel(u.beds)))].join(' · ');
-      return `<details class="building-group"${open}><summary><div><div class="card-title">${esc(first.building_name || key)}</div><div class="card-sub">${esc(beds)} · ${bUnits.length} available unit${bUnits.length===1?'':'s'}</div></div><div class="price-pill">From ${esc(money(minPrice(bUnits)))}</div></summary><div class="building-units">${bUnits.map(unitCard).join('')}</div></details>`;
+      return `<details class="building-group"${open}><summary><div><div class="card-title">${esc(first.building_name || key)}</div><div class="card-sub">${esc(beds)} · ${bUnits.length} available unit${bUnits.length===1?'':'s'}</div></div><div class="building-summary-actions"><div class="price-pill">From ${esc(money(minPrice(bUnits)))}</div>${flagButton('building', buildingFlagId(first))}</div></summary><div class="building-units">${bUnits.map(unitCard).join('')}</div></details>`;
     }).join('')}</div></section>`;
   }).join('');
 }
 function render(){
-  renderStats();
-  const buildingCount = new Set(filtered.map(buildingKey)).size;
-  $('resultsTitle').textContent = `${filtered.length.toLocaleString()} unit${filtered.length===1?'':'s'} in ${buildingCount.toLocaleString()} building${buildingCount===1?'':'s'}`;
-  $('resultsSub').textContent = state.source === 'live' ? `Grouped by master neighborhood, then building. Synced ${state.updated_at ? new Date(state.updated_at).toLocaleString() : 'recently'} from Inventory LIVE.` : 'Sample data shown. Add the Apps Script endpoint in Settings to pull Inventory LIVE.';
-  $('inventoryList').innerHTML = groupResultsHtml();
-  document.querySelectorAll('[data-unit]').forEach(el=>el.onclick=()=>openUnit(el.dataset.unit));
+  $('flaggedTabCount').textContent = flagCount() ? `(${flagCount()})` : '';
+  if(ui.tab === 'search'){
+    renderStats();
+    const buildingCount = new Set(filtered.map(buildingKey)).size;
+    $('resultsTitle').textContent = `${filtered.length.toLocaleString()} unit${filtered.length===1?'':'s'} in ${buildingCount.toLocaleString()} building${buildingCount===1?'':'s'}`;
+    $('resultsSub').textContent = state.source === 'live' ? `Grouped by master neighborhood, then building. Synced ${state.updated_at ? new Date(state.updated_at).toLocaleString() : 'recently'} from Inventory LIVE.` : 'Sample data shown. Add the Apps Script endpoint in Settings to pull Inventory LIVE.';
+    $('inventoryList').innerHTML = groupResultsHtml();
+    document.querySelectorAll('[data-unit]').forEach(el=>el.onclick=()=>openUnit(el.dataset.unit));
+    wireFlagButtons();
+  }
+  renderFlagged();
+}
+function renderFlagged(){
+  const flags = loadFlags();
+  const entries = Object.values(flags).sort((a,b)=>String(b.updated_at||b.created_at).localeCompare(String(a.updated_at||a.created_at)));
+  if(!$('flaggedList')) return;
+  $('flaggedList').innerHTML = entries.length ? entries.map(flagCard).join('') : '<div class="empty">No flagged inventory yet. Tap “Flag” on a building or unit to add one.</div>';
+  document.querySelectorAll('#flaggedList [data-unit]').forEach(el=>el.onclick=()=>openUnit(el.dataset.unit));
+  wireFlagButtons();
+}
+function flagCard(f){
+  const unit = f.scope === 'unit' ? findUnit(f.id) : null;
+  const buildingUnits = f.scope === 'building' ? (state.units || []).filter(u=>buildingKey(u)===f.id) : [];
+  const sample = unit || buildingUnits[0] || {};
+  const title = f.scope === 'building' ? (sample.building_name || f.id) : unitTitle(unit);
+  const sub = f.scope === 'building' ? `${sample.neighborhood || 'Neighborhood TBD'} · ${buildingUnits.length} matching unit${buildingUnits.length===1?'':'s'}` : [sample.neighborhood, sample.unit_number ? `Unit ${sample.unit_number}` : '', sample.price ? money(sample.price) : ''].filter(Boolean).join(' · ');
+  return `<article class="card flagged-card ${f.scope==='building'?'building-flag':''}" ${f.scope==='unit' ? `data-unit="${esc(f.id)}"` : ''}><div><div class="badges">${badge(flagLabel(f.scope),'red')}</div><div class="card-title">${esc(title)}</div><div class="card-sub">${esc(sub)}</div><div class="flag-reason"><b>Flag Reason:</b> ${esc(f.reason)}</div></div><div class="unit-actions">${flagButton(f.scope, f.id)}</div></article>`;
 }
 function openUnit(id){
   const u = (state.units || []).find(x=>x.id===id); if(!u) return;
   const rawRows = Object.entries(u.raw || {}).filter(([,v])=>v !== '' && v != null).slice(0,40).map(([k,v])=>`<div class="detail-row"><label>${esc(k)}</label><div>${esc(v)}</div></div>`).join('');
-  $('unitDetail').innerHTML = `<div class="eyebrow">${esc(u.neighborhood || 'Inventory')}</div><h2>${esc(u.building_name)}${u.unit_number ? ` · Unit ${esc(u.unit_number)}` : ''}</h2><div class="unit-meta">${badge(money(u.price),'gold')}${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'blue')}${badge(formatDate(u.available_date),'green')}</div><div class="detail-grid">${rawRows}</div>${u.url ? `<div class="actions"><a class="primary-btn" href="${esc(u.url)}" target="_blank" rel="noopener">Open listing</a></div>` : ''}`;
+  $('unitDetail').innerHTML = `<div class="eyebrow">${esc(u.neighborhood || 'Inventory')}</div><h2>${esc(u.building_name)}${u.unit_number ? ` · Unit ${esc(u.unit_number)}` : ''}</h2><div class="unit-meta">${badge(money(u.price),'gold')}${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'blue')}${badge(formatDate(u.available_date),'green')}</div><div class="actions">${flagButton('unit', u.id)}${flagButton('building', buildingFlagId(u))}</div><div class="detail-grid">${rawRows}</div>${u.url ? `<div class="actions"><a class="primary-btn" href="${esc(u.url)}" target="_blank" rel="noopener">Open listing</a></div>` : ''}`;
   openDrawer('unitDrawer');
+  wireFlagButtons();
 }
 async function sync(){
   const endpoint = localStorage.getItem(ENDPOINT_KEY) || DEFAULT_ENDPOINT;
@@ -189,11 +280,24 @@ function exportCsv(){
   const csv = [cols.join(','), ...filtered.map(u=>cols.map(c=>`"${String(u[c] ?? '').replace(/"/g,'""')}"`).join(','))].join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = `myapt-inventory-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
 }
+function exportFlagsCsv(){
+  const flags = Object.values(loadFlags());
+  const cols = ['scope','building_name','unit_number','neighborhood','price','flag_reason','updated_at'];
+  const rows = flags.map(f=>{
+    const unit = f.scope === 'unit' ? findUnit(f.id) : (state.units || []).find(u=>buildingKey(u)===f.id);
+    return { scope:f.scope, building_name:unit?.building_name || f.id, unit_number:f.scope==='unit' ? (unit?.unit_number || '') : '', neighborhood:unit?.neighborhood || '', price:unit?.price || '', flag_reason:f.reason || '', updated_at:f.updated_at || f.created_at || '' };
+  });
+  const csv = [cols.join(','), ...rows.map(r=>cols.map(c=>`"${String(r[c] ?? '').replace(/"/g,'""')}"`).join(','))].join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = `myapt-flagged-inventory-${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+}
 function openDrawer(id){ $(id).classList.add('open'); $(id).setAttribute('aria-hidden','false'); }
 function closeDrawer(id){ $(id).classList.remove('open'); $(id).setAttribute('aria-hidden','true'); }
 function bind(){
+  document.querySelectorAll('[data-tab]').forEach(btn=>btn.onclick=()=>setTab(btn.dataset.tab));
+  $('flagForm').addEventListener('submit', saveFlag);
+  $('removeFlagBtn').onclick = removeCurrentFlag;
   ['searchInput','bathsFilter','minPriceFilter','maxPriceFilter','moveDateFilter','sortSelect'].forEach(id=>$(id).addEventListener('input', applyFilters));
-  $('syncBtn').onclick = sync; $('clearFiltersBtn').onclick = clearFilters; $('exportCsvBtn').onclick = exportCsv;
+  $('syncBtn').onclick = sync; $('clearFiltersBtn').onclick = clearFilters; $('exportCsvBtn').onclick = exportCsv; $('exportFlagsBtn').onclick = exportFlagsCsv;
   $('settingsBtn').onclick = ()=>{ $('endpointInput').value = localStorage.getItem(ENDPOINT_KEY) || DEFAULT_ENDPOINT; openDrawer('settingsDrawer'); };
   $('saveEndpointBtn').onclick = ()=>{ localStorage.setItem(ENDPOINT_KEY, $('endpointInput').value.trim()); closeDrawer('settingsDrawer'); toast('Endpoint saved'); };
   $('loadSampleBtn').onclick = ()=>{ state={units:(window.MYAPT_INVENTORY_SEED||[]).map(normalizeUnit),updated_at:null,source:'sample'}; save(); populateFilters(); applyFilters(); closeDrawer('settingsDrawer'); };

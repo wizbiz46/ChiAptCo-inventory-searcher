@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="myAPT Inventory" />
   <title>myAPT Inventory Searcher</title>
-  <link rel="stylesheet" href="styles.css?v=grouped-neighborhood-building-accordions" />
+  <link rel="stylesheet" href="styles.css?v=flagged-inventory-tab" />
 </head>
 <body>
   <div class="app" id="app">
@@ -19,8 +19,13 @@
       <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
     </header>
 
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="search">Search</button>
+      <button class="tab" data-tab="flagged">Flagged Inventory <span id="flaggedTabCount"></span></button>
+    </nav>
+
     <main>
-      <section class="panel active">
+      <section class="panel active" id="searchPanel">
         <div class="hero-card">
           <div>
             <div class="eyebrow">Live inventory</div>
@@ -66,6 +71,18 @@
         </div>
         <div class="list" id="inventoryList"></div>
       </section>
+
+      <section class="panel" id="flaggedPanel">
+        <div class="hero-card">
+          <div>
+            <div class="eyebrow">Review list</div>
+            <h2>Flagged inventory</h2>
+            <p>Buildings and units you flagged, with your Flag Reason notes.</p>
+          </div>
+          <button class="small-btn" id="exportFlagsBtn">Export flags CSV</button>
+        </div>
+        <div class="list" id="flaggedList"></div>
+      </section>
     </main>
   </div>
 
@@ -73,6 +90,21 @@
     <div class="drawer-card large">
       <button class="close" data-close="unitDrawer">×</button>
       <div id="unitDetail"></div>
+    </div>
+  </div>
+
+  <div class="drawer" id="flagDrawer" aria-hidden="true">
+    <div class="drawer-card">
+      <button class="close" data-close="flagDrawer">×</button>
+      <h2 id="flagFormTitle">Flag inventory</h2>
+      <form id="flagForm" class="form">
+        <input type="hidden" id="flagTargetType" />
+        <input type="hidden" id="flagTargetId" />
+        <label>Flag type<select id="flagScope"><option value="building">Flag building</option><option value="unit">Flag unit</option></select></label>
+        <label>Flag Reason<textarea id="flagReason" required placeholder="Why are we flagging this? Bad pricing, odd availability, ask leasing, client note…"></textarea></label>
+        <button class="primary-btn" type="submit">Save flag</button>
+        <button class="danger-btn" type="button" id="removeFlagBtn">Remove flag</button>
+      </form>
     </div>
   </div>
 
@@ -92,7 +124,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
-  <script src="seed-data.js?v=grouped-neighborhood-building-accordions"></script>
-  <script src="app.js?v=grouped-neighborhood-building-accordions"></script>
+  <script src="seed-data.js?v=flagged-inventory-tab"></script>
+  <script src="app.js?v=flagged-inventory-tab"></script>
 </body>
 </html>
