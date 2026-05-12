@@ -1,6 +1,6 @@
 const STORE_KEY = 'myapt_inventory_searcher_v1';
 const ENDPOINT_KEY = 'myapt_inventory_endpoint_v1';
-const DEFAULT_ENDPOINT = '';
+const DEFAULT_ENDPOINT = 'https://ncsniper.app.n8n.cloud/webhook/myapt-inventory-live';
 
 let state = loadState();
 let filtered = [];
@@ -25,7 +25,7 @@ function normalizeUnit(raw, idx=0){
     beds: pick('beds','bed','bedrooms','Bed','Beds','Bedrooms') ?? '',
     baths: pick('baths','bath','bathrooms','Bath','Baths','Bathrooms') ?? '',
     sqft: pick('sqft','square_feet','Sqft','SQFT','Square Feet') ?? '',
-    price: pick('price','rent','market_rent','effective_rent','Price','Rent','Market Rent','Effective Rent') ?? '',
+    price: pick('price','rent_price','rent','market_rent','effective_rent','Price','Rent Price','Rent','Market Rent','Effective Rent') ?? '',
     available_date: pick('available_date','availability_date','move_date','available','Available Date','Move Date','Available') ?? '',
     floorplan_name: pick('floorplan_name','floorplan','Floorplan','Floor Plan') ?? '',
     address: pick('address','Address') ?? '',
@@ -146,3 +146,4 @@ function bind(){
   document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{ if(e.target===d) closeDrawer(d.id); }));
 }
 bind(); populateFilters(); applyFilters();
+if (DEFAULT_ENDPOINT) sync();
