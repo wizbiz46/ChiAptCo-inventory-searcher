@@ -5,6 +5,7 @@ const FLAGS_KEY = 'myapt_inventory_flags_v1';
 const FLAGS_BACKUP_KEY = 'chicago_apartment_co_inventory_flags_v1';
 const FLAGS_KEYS = [FLAGS_KEY, FLAGS_BACKUP_KEY];
 const FLAGS_SYNC_ENDPOINT = 'https://ncsniper.app.n8n.cloud/webhook/chiaptco-inventory-flags';
+const INVENTORY_CACHE_MS = 30 * 60 * 1000;
 const DEFAULT_ENDPOINT = 'https://ncsniper.app.n8n.cloud/webhook/myapt-inventory-live';
 
 let state = loadState();
@@ -295,6 +296,11 @@ function openUnit(id){
   openDrawer('unitDrawer');
   wireFlagButtons();
 }
+function shouldAutoSyncInventory(){
+  if(state.source !== 'live' || !(state.units || []).length) return true;
+  const last = state.updated_at ? new Date(state.updated_at).getTime() : 0;
+  return !last || (Date.now() - last) > INVENTORY_CACHE_MS;
+}
 async function sync(){
   const endpoint = localStorage.getItem(ENDPOINT_KEY) || DEFAULT_ENDPOINT;
   if(!endpoint){ openDrawer('settingsDrawer'); toast('Add the inventory endpoint first'); return; }
@@ -340,5 +346,5 @@ function bind(){
   document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{ if(e.target===d) closeDrawer(d.id); }));
 }
 bind(); populateFilters(); applyFilters();
-if (DEFAULT_ENDPOINT) sync();
+if (DEFAULT_ENDPOINT && shouldAutoSyncInventory()) sync();
 syncFlagsFromRemote();
