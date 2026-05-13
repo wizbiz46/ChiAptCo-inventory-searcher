@@ -266,7 +266,7 @@ function render(){
     renderStats();
     const buildingCount = new Set(filtered.map(buildingKey)).size;
     $('resultsTitle').textContent = `${filtered.length.toLocaleString()} unit${filtered.length===1?'':'s'} in ${buildingCount.toLocaleString()} building${buildingCount===1?'':'s'}`;
-    $('resultsSub').textContent = state.source === 'live' ? `Grouped by master neighborhood, then building. Synced ${state.updated_at ? new Date(state.updated_at).toLocaleString() : 'recently'} from Inventory LIVE.` : 'Sample data shown. Add the Apps Script endpoint in Settings to pull Inventory LIVE.';
+    $('resultsSub').textContent = state.source === 'live' ? `Grouped by master neighborhood, then building. Synced ${state.updated_at ? new Date(state.updated_at).toLocaleString() : 'recently'} from the 8AM Inventory LIVE snapshot.` : 'Sample data shown. Add the Apps Script endpoint in Settings to pull Inventory LIVE.';
     $('inventoryList').innerHTML = groupResultsHtml();
     document.querySelectorAll('[data-unit]').forEach(el=>el.onclick=()=>openUnit(el.dataset.unit));
     wireFlagButtons();
@@ -304,7 +304,7 @@ function shouldAutoSyncInventory(){
 async function sync(){
   const endpoint = localStorage.getItem(ENDPOINT_KEY) || DEFAULT_ENDPOINT;
   if(!endpoint){ openDrawer('settingsDrawer'); toast('Add the inventory endpoint first'); return; }
-  $('syncBtn').disabled = true; $('syncBtn').textContent = 'Refreshing…';
+  $('syncBtn').disabled = true; $('syncBtn').textContent = 'Reloading…';
   try{
     const res = await fetch(endpoint, { cache:'no-store' });
     const json = await res.json();
@@ -313,7 +313,7 @@ async function sync(){
     state = { units: rows.map(normalizeUnit), updated_at: new Date().toISOString(), source: 'live' };
     save(); populateFilters(); applyFilters(); toast(`Loaded ${state.units.length.toLocaleString()} units`);
   }catch(err){ toast('Sync failed: ' + err.message); }
-  finally{ $('syncBtn').disabled = false; $('syncBtn').textContent = 'Refresh'; }
+  finally{ $('syncBtn').disabled = false; $('syncBtn').textContent = 'Reload snapshot'; }
 }
 function clearFilters(){ ['searchInput','minPriceFilter','maxPriceFilter','moveDateFilter'].forEach(id=>$(id).value=''); $('bathsFilter').value='any'; document.querySelectorAll('.multi-chip.active').forEach(btn=>btn.classList.remove('active')); applyFilters(); }
 function exportCsv(){

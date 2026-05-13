@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Chicago Apartment Co. Inventory" />
   <title>Chicago Apartment Co. Inventory Searcher</title>
-  <link rel="stylesheet" href="styles.css?v=inventory-cache-quota-fix" />
+  <link rel="stylesheet" href="styles.css?v=daily-8am-inventory-snapshot" />
 </head>
 <body>
   <div class="app" id="app">
@@ -30,9 +30,9 @@
           <div>
             <div class="eyebrow">Live inventory</div>
             <h2 id="heroTitle">Find units fast</h2>
-            <p id="heroSub">Filter the Inventory LIVE sheet by beds, baths, neighborhood, price, and move date.</p>
+            <p id="heroSub">Filter the daily 8AM Inventory LIVE snapshot by beds, baths, neighborhood, price, and move date.</p>
           </div>
-          <button class="primary-btn" id="syncBtn">Refresh</button>
+          <button class="primary-btn" id="syncBtn">Reload snapshot</button>
         </div>
 
         <div class="stats-grid" id="statsGrid"></div>
@@ -124,7 +124,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
-  <script src="seed-data.js?v=inventory-cache-quota-fix"></script>
-  <script src="app.js?v=inventory-cache-quota-fix"></script>
+  <script src="seed-data.js?v=daily-8am-inventory-snapshot"></script>
+  <script src="app.js?v=daily-8am-inventory-snapshot"></script>
 </body>
 </html>
