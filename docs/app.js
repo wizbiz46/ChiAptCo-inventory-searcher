@@ -1,6 +1,9 @@
 const STORE_KEY = 'myapt_inventory_searcher_v1';
 const ENDPOINT_KEY = 'myapt_inventory_endpoint_v1';
+// Do not remove/rename these keys. Flags live in browser localStorage and must survive deploys.
 const FLAGS_KEY = 'myapt_inventory_flags_v1';
+const FLAGS_BACKUP_KEY = 'chicago_apartment_co_inventory_flags_v1';
+const FLAGS_KEYS = [FLAGS_KEY, FLAGS_BACKUP_KEY];
 const DEFAULT_ENDPOINT = 'https://ncsniper.app.n8n.cloud/webhook/myapt-inventory-live';
 
 let state = loadState();
@@ -41,8 +44,17 @@ function loadState(){
   return { units: (window.MYAPT_INVENTORY_SEED || []).map(normalizeUnit), updated_at: null, source: 'sample' };
 }
 function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
-function loadFlags(){ try { return JSON.parse(localStorage.getItem(FLAGS_KEY) || '{}'); } catch(e){ return {}; } }
-function saveFlags(flags){ localStorage.setItem(FLAGS_KEY, JSON.stringify(flags)); }
+function parseFlagStore(key){
+  try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch(e){ return {}; }
+}
+function loadFlags(){
+  const merged = FLAGS_KEYS.reduce((acc, key)=>({ ...acc, ...parseFlagStore(key) }), {});
+  const legacy = parseFlagStore(FLAGS_KEY);
+  const backup = parseFlagStore(FLAGS_BACKUP_KEY);
+  if(Object.keys(legacy).length !== Object.keys(merged).length || Object.keys(backup).length !== Object.keys(merged).length) saveFlags(merged);
+  return merged;
+}
+function saveFlags(flags){ FLAGS_KEYS.forEach(key=>localStorage.setItem(key, JSON.stringify(flags))); }
 function flagKey(scope, id){ return `${scope}:${id}`; }
 function buildingFlagId(u){ return buildingKey(u); }
 function getFlag(scope, id){ return loadFlags()[flagKey(scope, id)]; }
