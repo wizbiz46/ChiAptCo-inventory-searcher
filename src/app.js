@@ -1,4 +1,4 @@
-const STORE_KEY = 'myapt_inventory_searcher_v1';
+const STORE_KEY = 'myapt_inventory_searcher_v2';
 const ENDPOINT_KEY = 'myapt_inventory_endpoint_v1';
 // Do not remove/rename these keys. Flags live in browser localStorage and must survive deploys.
 const FLAGS_KEY = 'myapt_inventory_flags_v1';
@@ -266,7 +266,9 @@ function render(){
     renderStats();
     const buildingCount = new Set(filtered.map(buildingKey)).size;
     $('resultsTitle').textContent = `${filtered.length.toLocaleString()} unit${filtered.length===1?'':'s'} in ${buildingCount.toLocaleString()} building${buildingCount===1?'':'s'}`;
-    $('resultsSub').textContent = state.source === 'live' ? `Grouped by master neighborhood, then building. Synced ${state.updated_at ? new Date(state.updated_at).toLocaleString() : 'recently'} from the 8AM Inventory LIVE snapshot.` : 'Sample data shown. Add the Apps Script endpoint in Settings to pull Inventory LIVE.';
+    const syncText = state.updated_at ? new Date(state.updated_at).toLocaleString() : 'recently';
+    const warningText = state.warning ? ` ${state.warning}` : '';
+    $('resultsSub').textContent = state.source === 'live' ? `Grouped by neighborhood, then building. Snapshot updated ${syncText}.${warningText}` : 'Sample data shown. Add the Apps Script endpoint in Settings to pull Inventory LIVE.';
     $('inventoryList').innerHTML = groupResultsHtml();
     document.querySelectorAll('[data-unit]').forEach(el=>el.onclick=()=>openUnit(el.dataset.unit));
     wireFlagButtons();
@@ -310,7 +312,7 @@ async function sync(){
     const json = await res.json();
     const rows = Array.isArray(json) ? json : (json.data?.units || json.units || json.inventory || []);
     if(!rows.length) throw new Error('No inventory rows returned');
-    state = { units: rows.map(normalizeUnit), updated_at: new Date().toISOString(), source: 'live' };
+    state = { units: rows.map(normalizeUnit), updated_at: json.updated_at || new Date().toISOString(), warning: json.warning || '', source: 'live' };
     save(); populateFilters(); applyFilters(); toast(`Loaded ${state.units.length.toLocaleString()} units`);
   }catch(err){ toast('Sync failed: ' + err.message); }
   finally{ $('syncBtn').disabled = false; $('syncBtn').textContent = 'Reload snapshot'; }
@@ -341,7 +343,7 @@ function bind(){
   $('syncBtn').onclick = sync; $('clearFiltersBtn').onclick = clearFilters; $('exportCsvBtn').onclick = exportCsv; $('exportFlagsBtn').onclick = exportFlagsCsv;
   $('settingsBtn').onclick = ()=>{ $('endpointInput').value = localStorage.getItem(ENDPOINT_KEY) || DEFAULT_ENDPOINT; openDrawer('settingsDrawer'); };
   $('saveEndpointBtn').onclick = ()=>{ localStorage.setItem(ENDPOINT_KEY, $('endpointInput').value.trim()); closeDrawer('settingsDrawer'); toast('Endpoint saved'); };
-  $('loadSampleBtn').onclick = ()=>{ state={units:(window.MYAPT_INVENTORY_SEED||[]).map(normalizeUnit),updated_at:null,source:'sample'}; save(); populateFilters(); applyFilters(); closeDrawer('settingsDrawer'); };
+  $('loadSampleBtn').onclick = ()=>{ state={units:(window.MYAPT_INVENTORY_SEED||[]).map(normalizeUnit),updated_at:null,warning:'',source:'sample'}; save(); populateFilters(); applyFilters(); closeDrawer('settingsDrawer'); };
   document.querySelectorAll('[data-close]').forEach(btn=>btn.onclick=()=>closeDrawer(btn.dataset.close));
   document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{ if(e.target===d) closeDrawer(d.id); }));
 }
