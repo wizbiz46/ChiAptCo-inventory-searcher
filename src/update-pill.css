@@ -1,0 +1,21 @@
+.update-pill {
+  align-self: flex-start;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  background: #fff7eb;
+  color: var(--gold2);
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+@media (max-width: 520px) {
+  .hero-card {
+    flex-direction: column;
+  }
+
+  .update-pill {
+    white-space: normal;
+  }
+}

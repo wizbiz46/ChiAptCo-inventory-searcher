@@ -99,6 +99,13 @@ function formatDate(s){ const d = dateValue(s); return d ? d.toLocaleDateString(
 function bedLabel(v){ const n = Number(v); return n === 0 ? 'Studio' : n ? `${n} bed` : 'Beds TBD'; }
 function bathLabel(v){ const n = Number(v); return n ? `${Number.isInteger(n) ? n : n.toFixed(1)} bath` : 'Baths TBD'; }
 function badge(label, cls=''){ return `<span class="badge ${cls}">${esc(label)}</span>`; }
+function lastUpdateLabel(value){
+  const d = dateValue(value);
+  if(!d) return 'Last Update pending';
+  const time = d.toLocaleTimeString('en-US', { timeZone:'America/Chicago', hour:'numeric', minute:'2-digit' }).replace(':00 ', ' ');
+  const date = d.toLocaleDateString('en-US', { timeZone:'America/Chicago', month:'short', day:'numeric' });
+  return `Last Update (${time} on ${date})`;
+}
 
 function selectedChips(id){
   return [...document.querySelectorAll(`#${id} .multi-chip.active`)].map(btn=>btn.dataset.value);
@@ -277,6 +284,7 @@ function groupResultsHtml(){
 function render(){
   $('flaggedTabCount').textContent = flagCount() ? `(${flagCount()})` : '';
   if(ui.tab === 'search'){
+    if($('lastUpdateTag')) $('lastUpdateTag').textContent = lastUpdateLabel(state.updated_at);
     renderStats();
     const buildingCount = new Set(filtered.map(buildingKey)).size;
     $('resultsTitle').textContent = `${filtered.length.toLocaleString()} unit${filtered.length===1?'':'s'} in ${buildingCount.toLocaleString()} building${buildingCount===1?'':'s'}`;

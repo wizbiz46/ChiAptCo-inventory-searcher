@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Chicago Apartment Co. Inventory" />
   <title>Chicago Apartment Co. Inventory Searcher</title>
   <link rel="stylesheet" href="styles.css?v=live-inventory-cache-refresh-fallback" />
+  <link rel="stylesheet" href="update-pill.css?v=last-update-pill" />
 </head>
 <body>
   <div class="app" id="app">
@@ -32,6 +33,7 @@
             <h2 id="heroTitle">Find units fast</h2>
             <p id="heroSub">Filter the twice-daily Inventory LIVE snapshot by beds, baths, neighborhood, price, and move date.</p>
           </div>
+          <div class="update-pill" id="lastUpdateTag">Last Update pending</div>
         </div>
 
         <div class="stats-grid" id="statsGrid"></div>
@@ -123,7 +125,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
-  <script src="seed-data.js?v=auto-update-no-reload-button"></script>
-  <script src="app.js?v=auto-update-no-reload-button"></script>
+  <script src="seed-data.js?v=last-update-pill"></script>
+  <script src="app.js?v=last-update-pill"></script>
 </body>
 </html>
