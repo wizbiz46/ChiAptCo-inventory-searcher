@@ -330,7 +330,8 @@ async function sync(){
   const storedEndpoint = (localStorage.getItem(ENDPOINT_KEY) || '').trim();
   const endpoint = storedEndpoint && !LEGACY_INVENTORY_ENDPOINTS.includes(storedEndpoint) ? storedEndpoint : DEFAULT_ENDPOINT;
   if(!endpoint){ openDrawer('settingsDrawer'); toast('Add the inventory endpoint first'); return; }
-  $('syncBtn').disabled = true; $('syncBtn').textContent = 'Reloading…';
+  const syncBtn = $('syncBtn');
+  if(syncBtn){ syncBtn.disabled = true; syncBtn.textContent = 'Loading…'; }
   try{
     const res = await fetch(endpoint, { cache:'no-store' });
     const json = await res.json();
@@ -339,7 +340,7 @@ async function sync(){
     state = { units: rows.map(normalizeUnit), updated_at: json.updated_at || new Date().toISOString(), warning: json.warning || '', source: 'live' };
     saveInventoryMeta(); populateFilters(); applyFilters(); toast(`Loaded ${state.units.length.toLocaleString()} units`);
   }catch(err){ toast('Sync failed: ' + err.message); }
-  finally{ $('syncBtn').disabled = false; $('syncBtn').textContent = 'Reload snapshot'; }
+  finally{ if(syncBtn){ syncBtn.disabled = false; syncBtn.textContent = 'Reload inventory'; } }
 }
 function clearFilters(){ ['searchInput','minPriceFilter','maxPriceFilter','moveDateFilter'].forEach(id=>$(id).value=''); $('bathsFilter').value='any'; document.querySelectorAll('.multi-chip.active').forEach(btn=>btn.classList.remove('active')); applyFilters(); }
 function exportCsv(){
@@ -364,7 +365,7 @@ function bind(){
   $('flagForm').addEventListener('submit', saveFlag);
   $('removeFlagBtn').onclick = removeCurrentFlag;
   ['searchInput','bathsFilter','minPriceFilter','maxPriceFilter','moveDateFilter','sortSelect'].forEach(id=>$(id).addEventListener('input', applyFilters));
-  $('syncBtn').onclick = sync; $('clearFiltersBtn').onclick = clearFilters; $('exportCsvBtn').onclick = exportCsv; $('exportFlagsBtn').onclick = exportFlagsCsv;
+  if($('syncBtn')) $('syncBtn').onclick = sync; $('clearFiltersBtn').onclick = clearFilters; $('exportCsvBtn').onclick = exportCsv; $('exportFlagsBtn').onclick = exportFlagsCsv;
   $('settingsBtn').onclick = ()=>{ $('endpointInput').value = localStorage.getItem(ENDPOINT_KEY) || DEFAULT_ENDPOINT; openDrawer('settingsDrawer'); };
   $('saveEndpointBtn').onclick = ()=>{ localStorage.setItem(ENDPOINT_KEY, $('endpointInput').value.trim()); closeDrawer('settingsDrawer'); toast('Endpoint saved'); };
   $('loadSampleBtn').onclick = ()=>{ state={units:(window.MYAPT_INVENTORY_SEED||[]).map(normalizeUnit),updated_at:null,warning:'',source:'sample'}; save(); populateFilters(); applyFilters(); closeDrawer('settingsDrawer'); };
