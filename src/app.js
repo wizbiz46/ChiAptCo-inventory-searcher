@@ -56,6 +56,10 @@ function loadState(){
   return { units: (window.MYAPT_INVENTORY_SEED || []).map(normalizeUnit), updated_at: null, source: 'sample' };
 }
 function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+function saveInventoryMeta(){
+  const { units, ...meta } = state;
+  localStorage.setItem(STORE_KEY, JSON.stringify({ ...meta, units: [] }));
+}
 function parseFlagStore(key){
   try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch(e){ return {}; }
 }
@@ -333,7 +337,7 @@ async function sync(){
     const rows = Array.isArray(json) ? json : (json.data?.units || json.units || json.inventory || []);
     if(!rows.length) throw new Error('No inventory rows returned');
     state = { units: rows.map(normalizeUnit), updated_at: json.updated_at || new Date().toISOString(), warning: json.warning || '', source: 'live' };
-    save(); populateFilters(); applyFilters(); toast(`Loaded ${state.units.length.toLocaleString()} units`);
+    saveInventoryMeta(); populateFilters(); applyFilters(); toast(`Loaded ${state.units.length.toLocaleString()} units`);
   }catch(err){ toast('Sync failed: ' + err.message); }
   finally{ $('syncBtn').disabled = false; $('syncBtn').textContent = 'Reload snapshot'; }
 }
