@@ -30,7 +30,7 @@
           <div>
             <div class="eyebrow">Live inventory</div>
             <h2 id="heroTitle">Find units fast</h2>
-            <p id="heroSub">Filter the daily 8AM Inventory LIVE snapshot by beds, baths, neighborhood, price, and move date.</p>
+            <p id="heroSub">Filter the twice-daily Inventory LIVE snapshot by beds, baths, neighborhood, price, and move date.</p>
           </div>
           <button class="primary-btn" id="syncBtn">Reload snapshot</button>
         </div>
@@ -113,8 +113,8 @@
       <button class="close" data-close="settingsDrawer">×</button>
       <h2>Settings</h2>
       <div class="settings-block">
-        <label>Google Apps Script inventory endpoint<input id="endpointInput" placeholder="https://script.google.com/macros/s/.../exec" /></label>
-        <p class="muted">Deploy the included Apps Script as a Web App, then paste the URL here.</p>
+        <label>Inventory data source<input id="endpointInput" placeholder="inventory-live.json" /></label>
+        <p class="muted">Defaults to the shared Inventory LIVE snapshot published with this app.</p>
       </div>
       <div class="actions">
         <button class="primary-btn" id="saveEndpointBtn">Save endpoint</button>
@@ -124,7 +124,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
-  <script src="seed-data.js?v=live-inventory-cache-refresh-fallback"></script>
-  <script src="app.js?v=live-inventory-cache-refresh-fallback"></script>
+  <script src="seed-data.js?v=same-origin-inventory-json"></script>
+  <script src="app.js?v=same-origin-inventory-json"></script>
 </body>
 </html>
