@@ -99,10 +99,10 @@ function formatDate(s){ const d = dateValue(s); return d ? d.toLocaleDateString(
 function bedLabel(v){ const n = Number(v); return n === 0 ? 'Studio' : n ? `${n} bed` : 'Beds TBD'; }
 function bathLabel(v){ const n = Number(v); return n ? `${Number.isInteger(n) ? n : n.toFixed(1)} bath` : 'Baths TBD'; }
 function badge(label, cls=''){ return `<span class="badge ${cls}">${esc(label)}</span>`; }
-function lastUpdateLabel(value){
+function lastUpdateLabel(value, slot){
   const d = dateValue(value);
   if(!d) return 'Last Update pending';
-  const time = d.toLocaleTimeString('en-US', { timeZone:'America/Chicago', hour:'numeric', minute:'2-digit' }).replace(':00 ', ' ');
+  const time = slot || d.toLocaleTimeString('en-US', { timeZone:'America/Chicago', hour:'numeric', minute:'2-digit' }).replace(':00 ', ' ');
   const date = d.toLocaleDateString('en-US', { timeZone:'America/Chicago', month:'short', day:'numeric' });
   return `Last Update (${time} on ${date})`;
 }
@@ -284,7 +284,7 @@ function groupResultsHtml(){
 function render(){
   $('flaggedTabCount').textContent = flagCount() ? `(${flagCount()})` : '';
   if(ui.tab === 'search'){
-    if($('lastUpdateTag')) $('lastUpdateTag').textContent = lastUpdateLabel(state.updated_at);
+    if($('lastUpdateTag')) $('lastUpdateTag').textContent = lastUpdateLabel(state.updated_at, state.update_slot);
     renderStats();
     const buildingCount = new Set(filtered.map(buildingKey)).size;
     $('resultsTitle').textContent = `${filtered.length.toLocaleString()} unit${filtered.length===1?'':'s'} in ${buildingCount.toLocaleString()} building${buildingCount===1?'':'s'}`;
@@ -345,7 +345,7 @@ async function sync(){
     const json = await res.json();
     const rows = Array.isArray(json) ? json : (json.data?.units || json.units || json.inventory || []);
     if(!rows.length) throw new Error('No inventory rows returned');
-    state = { units: rows.map(normalizeUnit), updated_at: json.updated_at || new Date().toISOString(), warning: json.warning || '', source: 'live' };
+    state = { units: rows.map(normalizeUnit), updated_at: json.updated_at || new Date().toISOString(), update_slot: json.update_slot || '', warning: json.warning || '', source: 'live' };
     saveInventoryMeta(); populateFilters(); applyFilters(); toast(`Loaded ${state.units.length.toLocaleString()} units`);
   }catch(err){ toast('Sync failed: ' + err.message); }
   finally{ if(syncBtn){ syncBtn.disabled = false; syncBtn.textContent = 'Reload inventory'; } }
