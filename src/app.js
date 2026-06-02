@@ -8,6 +8,11 @@ const FLAGS_SYNC_ENDPOINT = 'https://ncsniper.app.n8n.cloud/webhook/chiaptco-inv
 const INVENTORY_CACHE_MS = 30 * 60 * 1000;
 const DEFAULT_ENDPOINT = 'inventory-live.json';
 const LEGACY_INVENTORY_ENDPOINTS = ['https://ncsniper.app.n8n.cloud/webhook/myapt-inventory-live'];
+const WD_FILTERS = [
+  ['In Unit', 'In-unit W/D- all units'],
+  ['Some', 'Some'],
+  ['On Site', 'On-site laundry'],
+];
 
 let state = loadState();
 let filtered = [];
@@ -112,6 +117,7 @@ function selectedChips(id){
 }
 function chipLabel(type, v){
   if(type==='beds') return Number(v) === 0 ? 'Studio' : `${v} bed`;
+  if(type==='wd') return WD_FILTERS.find(([, value])=>value===v)?.[0] || v;
   return v;
 }
 function buildMultiChips(id, values, type){
@@ -126,6 +132,7 @@ function populateFilters(){
   buildMultiChips('bedsFilter', beds, 'beds');
   $('bathsFilter').innerHTML = '<option value="any">Any baths</option>' + baths.map(v=>`<option value="${esc(v)}">${esc(v)} bath</option>`).join('');
   buildMultiChips('neighborhoodFilter', hood, 'neighborhood');
+  buildMultiChips('wdFilter', WD_FILTERS.map(([, value])=>value), 'wd');
 }
 
 function applyFilters(){
@@ -133,6 +140,7 @@ function applyFilters(){
   const beds = selectedChips('bedsFilter');
   const baths = $('bathsFilter').value;
   const hood = selectedChips('neighborhoodFilter');
+  const wd = selectedChips('wdFilter');
   const min = num($('minPriceFilter').value);
   const max = num($('maxPriceFilter').value);
   const moveBy = $('moveDateFilter').value ? new Date($('moveDateFilter').value + 'T23:59:59') : null;
@@ -140,6 +148,7 @@ function applyFilters(){
     if(beds.length && !beds.includes(String(u.beds))) return false;
     if(baths !== 'any' && String(u.baths) !== baths) return false;
     if(hood.length && !hood.includes(u.neighborhood)) return false;
+    if(wd.length && !wd.includes(u.wd)) return false;
     const price = num(u.price);
     if(min && (!price || price < min)) return false;
     if(max && (!price || price > max)) return false;
