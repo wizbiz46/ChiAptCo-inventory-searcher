@@ -10,6 +10,12 @@
   font-weight: 900;
 }
 
+.rent-asterisk {
+  color: var(--red);
+  font-weight: 900;
+  margin-left: 2px;
+}
+
 @media (max-width: 520px) {
   .hero-card {
     flex-direction: column;

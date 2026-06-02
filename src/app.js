@@ -23,6 +23,14 @@ function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','
 function money(n){ const x = Number(String(n ?? '').replace(/[^0-9.]/g,'')); return x ? `$${Math.round(x).toLocaleString()}` : 'Price TBD'; }
 function num(n){ const x = Number(String(n ?? '').replace(/[^0-9.]/g,'')); return Number.isFinite(x) ? x : 0; }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function hasRentSpecial(u){
+  const net = num(u.net_rent || u.price);
+  const market = num(u.market_rent);
+  return !!net && !!market && net !== market;
+}
+function rentLabel(u){
+  return `${esc(money(u.price))}${hasRentSpecial(u) ? '<span class="rent-asterisk" aria-label="Net rent differs from market rent">*</span>' : ''}`;
+}
 
 function normalizeUnit(raw, idx=0){
   const pick = (...keys) => keys.map(k => raw?.[k]).find(v => v !== undefined && v !== null && String(v).trim() !== '');
@@ -245,7 +253,7 @@ function wireFlagButtons(){
 function unitCard(u){
   const meta = [u.floorplan_name, u.sqft ? `${u.sqft} sqft` : '', u.unit_number ? `Unit ${u.unit_number}` : '', u.special ? `Special: ${u.special}` : '', u.special_age ? `Special age: ${u.special_age}` : ''].filter(Boolean).join(' · ');
   const flagged = isFlagged('unit', u.id) || isFlagged('building', buildingFlagId(u));
-  return `<article class="card unit-card ${flagged?'flagged':''}" data-unit="${esc(u.id)}"><div><div class="card-title">${u.unit_number ? `Unit ${esc(u.unit_number)}` : esc(u.building_name)}</div><div class="card-sub">${esc(meta)}</div><div class="badges">${flagged?badge('Flagged','red'):''}${u.special?badge('Special','green'):''}${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'gold')}${badge(formatDate(u.available_date),'green')}</div></div><div class="unit-actions"><div class="price-pill">${esc(money(u.price))}</div>${flagButton('unit', u.id)}</div></article>`;
+  return `<article class="card unit-card ${flagged?'flagged':''}" data-unit="${esc(u.id)}"><div><div class="card-title">${u.unit_number ? `Unit ${esc(u.unit_number)}` : esc(u.building_name)}</div><div class="card-sub">${esc(meta)}</div><div class="badges">${flagged?badge('Flagged','red'):''}${u.special?badge('Special','green'):''}${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'gold')}${badge(formatDate(u.available_date),'green')}</div></div><div class="unit-actions"><div class="price-pill">${rentLabel(u)}</div>${flagButton('unit', u.id)}</div></article>`;
 }
 function buildingKey(u){ return u.building_key || u.building_name || 'Unknown property'; }
 function minPrice(units){ const prices = units.map(u=>num(u.price)).filter(Boolean); return prices.length ? Math.min(...prices) : 0; }
@@ -334,7 +342,7 @@ function openUnit(id){
     ['Air type', u.air_type],
   ].filter(([,v])=>v !== '' && v != null).map(([k,v])=>`<div class="detail-row"><label>${esc(k)}</label><div>${esc(v)}</div></div>`).join('');
   const rawRows = Object.entries(u.raw || {}).filter(([,v])=>v !== '' && v != null).slice(0,40).map(([k,v])=>`<div class="detail-row"><label>${esc(k)}</label><div>${esc(v)}</div></div>`).join('');
-  $('unitDetail').innerHTML = `<div class="eyebrow">${esc(u.neighborhood || 'Inventory')}</div><h2>${esc(u.building_name)}${u.unit_number ? ` · Unit ${esc(u.unit_number)}` : ''}</h2><div class="unit-meta">${badge(money(u.price),'gold')}${u.special?badge('Special','green'):''}${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'blue')}${badge(formatDate(u.available_date),'green')}</div><div class="actions">${flagButton('unit', u.id)}${flagButton('building', buildingFlagId(u))}</div><div class="detail-grid">${keyRows}${rawRows}</div>${u.url ? `<div class="actions"><a class="primary-btn" href="${esc(u.url)}" target="_blank" rel="noopener">Open listing</a></div>` : ''}`;
+  $('unitDetail').innerHTML = `<div class="eyebrow">${esc(u.neighborhood || 'Inventory')}</div><h2>${esc(u.building_name)}${u.unit_number ? ` · Unit ${esc(u.unit_number)}` : ''}</h2><div class="unit-meta"><span class="badge gold">${rentLabel(u)}</span>${u.special?badge('Special','green'):''}${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'blue')}${badge(formatDate(u.available_date),'green')}</div><div class="actions">${flagButton('unit', u.id)}${flagButton('building', buildingFlagId(u))}</div><div class="detail-grid">${keyRows}${rawRows}</div>${u.url ? `<div class="actions"><a class="primary-btn" href="${esc(u.url)}" target="_blank" rel="noopener">Open listing</a></div>` : ''}`;
   openDrawer('unitDrawer');
   wireFlagButtons();
 }
