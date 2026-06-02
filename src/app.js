@@ -246,6 +246,16 @@ function flagButton(scope, id){
   const active = isFlagged(scope, id);
   return `<button type="button" class="small-btn flag-btn ${active?'active':''}" data-flag-${scope}="${esc(id)}">${active?'🚩 Flagged':'🚩 Flag'}</button>`;
 }
+function displayValue(v){
+  return v !== undefined && v !== null && String(v).trim() !== '' ? String(v) : '—';
+}
+function detailRow(label, value){
+  return `<div class="detail-row"><label>${esc(label)}</label><div>${esc(displayValue(value))}</div></div>`;
+}
+function detailSection(title, rows){
+  const body = rows.length ? rows.join('') : '<div class="detail-empty">Mapping pending.</div>';
+  return `<details class="detail-section"><summary>${esc(title)}</summary><div class="detail-section-body">${body}</div></details>`;
+}
 function wireFlagButtons(){
   document.querySelectorAll('[data-flag-unit]').forEach(btn=>btn.onclick=e=>{ e.stopPropagation(); openFlag('unit', btn.dataset.flagUnit); });
   document.querySelectorAll('[data-flag-building]').forEach(btn=>btn.onclick=e=>{ e.stopPropagation(); openFlag('building', btn.dataset.flagBuilding); });
@@ -332,17 +342,24 @@ function flagCard(f){
 }
 function openUnit(id){
   const u = (state.units || []).find(x=>x.id===id); if(!u) return;
-  const keyRows = [
-    ['Net rent', money(u.price)],
-    ['Market rent', u.market_rent ? money(u.market_rent) : ''],
-    ['Special', u.special],
-    ['Special age', u.special_age],
-    ['Last available date', u.last_available_date],
-    ['Washer/dryer', u.wd],
-    ['Air type', u.air_type],
-  ].filter(([,v])=>v !== '' && v != null).map(([k,v])=>`<div class="detail-row"><label>${esc(k)}</label><div>${esc(v)}</div></div>`).join('');
-  const rawRows = Object.entries(u.raw || {}).filter(([,v])=>v !== '' && v != null).slice(0,40).map(([k,v])=>`<div class="detail-row"><label>${esc(k)}</label><div>${esc(v)}</div></div>`).join('');
-  $('unitDetail').innerHTML = `<div class="eyebrow">${esc(u.neighborhood || 'Inventory')}</div><h2>${esc(u.building_name)}${u.unit_number ? ` · Unit ${esc(u.unit_number)}` : ''}</h2><div class="unit-meta"><span class="badge gold">${rentLabel(u)}</span>${u.special?badge('Special','green'):''}${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'blue')}${badge(formatDate(u.available_date),'green')}</div><div class="actions">${flagButton('unit', u.id)}${flagButton('building', buildingFlagId(u))}</div><div class="detail-grid">${keyRows}${rawRows}</div>${u.url ? `<div class="actions"><a class="primary-btn" href="${esc(u.url)}" target="_blank" rel="noopener">Open listing</a></div>` : ''}`;
+  const unitRows = [
+    detailRow('Market Rent', u.market_rent ? money(u.market_rent) : ''),
+    detailRow('Net Rent', u.net_rent ? money(u.net_rent) : money(u.price)),
+    detailRow('Special', u.special),
+    detailRow('Special Age', u.special_age),
+    detailRow('Available', u.available_date),
+    detailRow('Hold Days', u.hold_days),
+    detailRow('Hold Notes', u.hold_notes),
+    detailRow('Last Web Sync', u.ygl_update_date),
+  ];
+  const sections = [
+    detailSection('Unit Details', unitRows),
+    detailSection('Building Details', []),
+    detailSection('Utilities', []),
+    detailSection('Parking', []),
+    detailSection('Pets', []),
+  ].join('');
+  $('unitDetail').innerHTML = `<div class="eyebrow">${esc(u.neighborhood || 'Inventory')}</div><h2>${esc(u.building_name)}${u.unit_number ? ` · Unit ${esc(u.unit_number)}` : ''}</h2><div class="unit-meta"><span class="badge gold">${rentLabel(u)}</span>${u.special?badge('Special','green'):''}${badge(bedLabel(u.beds),'blue')}${badge(bathLabel(u.baths),'blue')}${badge(formatDate(u.available_date),'green')}</div><div class="actions">${flagButton('unit', u.id)}${flagButton('building', buildingFlagId(u))}</div><div class="detail-sections">${sections}</div>${u.url ? `<div class="actions"><a class="primary-btn" href="${esc(u.url)}" target="_blank" rel="noopener">Open listing</a></div>` : ''}`;
   openDrawer('unitDrawer');
   wireFlagButtons();
 }
