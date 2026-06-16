@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-REFRESH_URL="https://ncsniper.app.n8n.cloud/webhook/chiaptco-inventory-refresh-now"
-SNAPSHOT_URL="https://ncsniper.app.n8n.cloud/webhook/myapt-inventory-live"
+REFRESH_URL="${REFRESH_URL:-http://localhost:5678/webhook/chiaptco-inventory-refresh-now}"
+SNAPSHOT_URL="${SNAPSHOT_URL:-http://localhost:5678/webhook/myapt-inventory-live}"
 TMP_JSON="$(mktemp)"
 TMP_REFRESH="$(mktemp)"
 UPDATE_SLOT=""
